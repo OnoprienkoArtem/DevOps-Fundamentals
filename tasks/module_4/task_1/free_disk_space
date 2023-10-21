@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+threshold=50
+avail_space=$(df -h / | awk 'NR==2 {print $4}' | tr -d 'Gi')
+warning_color="\033[38;5;214m"
+green_color="\033[38;5;46m"
+threshold_color="\033[38;5;196m"
+reset_color="\033[0m"
+
+if [[ -n $1 ]];
+then
+  threshold=$1
+fi
+
+if [[ $avail_space -lt $threshold ]];
+then
+  echo -e "${warning_color}WARNING:${reset_color} Free space of your hard disk is ${green_color}${avail_space}${reset_color}GB, which is less than the threshold of ${threshold_color}${threshold}${reset_color}GB."
+fi
