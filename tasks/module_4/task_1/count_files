@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+green_color="\033[38;5;46m"
+reset_color="\033[0m"
+
+echo -e "Number of files:" ${green_color}$(find $1 -type f | wc -l)${reset_color}
