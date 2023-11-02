@@ -22,6 +22,11 @@ source_file="$1"
 source_file_without_extension=$(basename "$source_file" | cut -d. -f1)
 output_file="$source_file_without_extension-$(date +'%Y-%m-%d').json"
 
+if [ -z "$source_file" ]; then
+  echo "Error: Please provide the path to the pipeline definition JSON file as the first argument."
+  exit 1
+fi
+
 if ! jq -e '
   .pipeline.version and
   .pipeline.stages[0].actions[0].configuration.Branch and
