@@ -5,8 +5,14 @@ if ! command -v jq &>/dev/null; then
   exit 1
 fi
 
-source_file="pipeline.json"
-output_file="pipeline-$(date +'%Y-%m-%d').json"
+if [ -z "$1" ]; then
+  echo "Usage: $0 <source_file> [--branch <branch>] [--owner <owner>] [--poll-for-source-changes <true|false>] [--configuration <config>]"
+  exit 1
+fi
+
+source_file="$1"
+source_file_without_extension=$(basename "$source_file" | cut -d. -f1)
+output_file="$source_file_without_extension-$(date +'%Y-%m-%d').json"
 
 branch="main"
 pollForSourceChanges="false"
