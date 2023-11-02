@@ -2,6 +2,19 @@
 
 if ! command -v jq &>/dev/null; then
   echo "jq is not installed. Please install jq before running this script."
+
+  if [ "$(uname)" == "Darwin" ]; then
+    echo "To install jq on macOS, you can use Homebrew:"
+    echo "brew install jq"
+  elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
+    echo "To install jq on most Linux distributions, you can use your package manager. For example, on Ubuntu, run:"
+    echo "sudo apt-get install jq"
+  elif [ "$(expr substr $(uname -s) 1 10)" == "MINGW32_NT" ] || [ "$(expr substr $(uname -s) 1 10)" == "MINGW64_NT" ]; then
+    echo "To install jq on Windows, you can use tools like Chocolatey or scoop. For Chocolatey, run:"
+    echo "choco install jq"
+  else
+    echo "Please install jq on your platform following the official documentation: https://jqlang.github.io/jq/"
+  fi
   exit 1
 fi
 
