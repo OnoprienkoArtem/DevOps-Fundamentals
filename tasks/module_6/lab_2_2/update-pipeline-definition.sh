@@ -18,14 +18,24 @@ if ! command -v jq &>/dev/null; then
   exit 1
 fi
 
+source_file="$1"
+source_file_without_extension=$(basename "$source_file" | cut -d. -f1)
+output_file="$source_file_without_extension-$(date +'%Y-%m-%d').json"
+
+if ! jq -e '
+  .pipeline.version and
+  .pipeline.stages[0].actions[0].configuration.Branch and
+  .pipeline.stages[0].actions[0].configuration.PollForSourceChanges and
+  .pipeline.stages[0].actions[0].configuration.Owner
+' "$source_file" &>/dev/null; then
+  echo "Error: The JSON definition is missing required properties. Please ensure that 'version', 'Branch', 'PollForSourceChanges' and 'Owner' are defined."
+  exit 1
+fi
+
 if [ -z "$1" ]; then
   echo "Usage: $0 <source_file> [--branch <branch>] [--owner <owner>] [--poll-for-source-changes <true|false>] [--configuration <config>]"
   exit 1
 fi
-
-source_file="$1"
-source_file_without_extension=$(basename "$source_file" | cut -d. -f1)
-output_file="$source_file_without_extension-$(date +'%Y-%m-%d').json"
 
 branch="main"
 pollForSourceChanges="false"
