@@ -27,12 +27,14 @@ if [ -z "$source_file" ]; then
   exit 1
 fi
 
-if ! jq -e '
-  .pipeline.version and
+version=".pipeline.version"
+
+if ! jq -e "
+  $version and
   .pipeline.stages[0].actions[0].configuration.Branch and
   .pipeline.stages[0].actions[0].configuration.PollForSourceChanges and
   .pipeline.stages[0].actions[0].configuration.Owner
-' "$source_file" &>/dev/null; then
+" "$source_file" &>/dev/null; then
   echo "Error: The JSON definition is missing required properties. Please ensure that 'version', 'Branch', 'PollForSourceChanges' and 'Owner' are defined."
   exit 1
 fi
@@ -42,45 +44,49 @@ if [ -z "$1" ]; then
   exit 1
 fi
 
-branch="main"
-pollForSourceChanges="false"
+if [ $# -eq 1 ]; then
+  filter="del(.metadata) | $version += 1"
+else
+  branch="main"
+  pollForSourceChanges="false"
 
-while [[ $# -gt 0 ]]; do
-  case "$1" in
-  --branch)
-    branch="$2"
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+    --branch)
+      branch="$2"
+      shift
+      ;;
+    --owner)
+      owner="$2"
+      shift
+      ;;
+    --poll-for-source-changes)
+      pollForSourceChanges="$2"
+      shift
+      ;;
+    --configuration)
+      configuration="$2"
+      shift
+      ;;
+    esac
     shift
-    ;;
-  --owner)
-    owner="$2"
-    shift
-    ;;
-  --poll-for-source-changes)
-    pollForSourceChanges="$2"
-    shift
-    ;;
-  --configuration)
-    configuration="$2"
-    shift
-    ;;
-  esac
-  shift
-done
+  done
 
-filter="
-  del(.metadata) |
-  .pipeline.version += 1 |
-  .pipeline.stages[0].actions[0].configuration.Branch = \"$branch\" |
-  .pipeline.stages[0].actions[0].configuration.PollForSourceChanges = \"$pollForSourceChanges\"
-"
+  filter="
+    del(.metadata) |
+    $version += 1 |
+    .pipeline.stages[0].actions[0].configuration.Branch = \"$branch\" |
+    .pipeline.stages[0].actions[0].configuration.PollForSourceChanges = \"$pollForSourceChanges\"
+  "
 
-if [ -n "$configuration" ]; then
-  build_config_json="{\"name\":\"BUILD_CONFIGURATION\",\"value\":\"$configuration\",\"type\":\"PLAINTEXT\"}"
-  filter="$filter | .pipeline.stages[].actions[].configuration += {\"EnvironmentVariables\": [$build_config_json]}"
-fi
+  if [ -n "$configuration" ]; then
+    build_config_json="{\"name\":\"BUILD_CONFIGURATION\",\"value\":\"$configuration\",\"type\":\"PLAINTEXT\"}"
+    filter="$filter | .pipeline.stages[].actions[].configuration += {\"EnvironmentVariables\": [$build_config_json]}"
+  fi
 
-if [ -n "$owner" ]; then
-  filter="$filter | .pipeline.stages[0].actions[0].configuration.Owner = \"$owner\""
+  if [ -n "$owner" ]; then
+    filter="$filter | .pipeline.stages[0].actions[0].configuration.Owner = \"$owner\""
+  fi
 fi
 
 jq "$filter" "$source_file" >tmp.$$.json && mv tmp.$$.json "$output_file"
