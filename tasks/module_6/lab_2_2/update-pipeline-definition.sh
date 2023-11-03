@@ -28,14 +28,13 @@ if [ -z "$source_file" ]; then
 fi
 
 version=".pipeline.version"
+rm_meta="del(.metadata)"
+config_branch=".pipeline.stages[0].actions[0].configuration.Branch"
+config_PollForSourceChanges=".pipeline.stages[0].actions[0].configuration.PollForSourceChanges"
+config_owner=".pipeline.stages[0].actions[0].configuration.Owner"
 
-if ! jq -e "
-  $version and
-  .pipeline.stages[0].actions[0].configuration.Branch and
-  .pipeline.stages[0].actions[0].configuration.PollForSourceChanges and
-  .pipeline.stages[0].actions[0].configuration.Owner
-" "$source_file" &>/dev/null; then
-  echo "Error: The JSON definition is missing required properties. Please ensure that 'version', 'Branch', 'PollForSourceChanges' and 'Owner' are defined."
+if ! jq -e "$version and $config_branch and $config_PollForSourceChanges and $config_owner" "$source_file" &>/dev/null; then
+  echo "Error: The JSON definition is missing required properties. Please ensure that 'version', 'Branch', 'PollForSourceChanges' or 'Owner' are defined."
   exit 1
 fi
 
@@ -45,7 +44,7 @@ if [ -z "$1" ]; then
 fi
 
 if [ $# -eq 1 ]; then
-  filter="del(.metadata) | $version += 1"
+  filter="$rm_meta | $version += 1"
 else
   branch="main"
   pollForSourceChanges="false"
@@ -72,12 +71,7 @@ else
     shift
   done
 
-  filter="
-    del(.metadata) |
-    $version += 1 |
-    .pipeline.stages[0].actions[0].configuration.Branch = \"$branch\" |
-    .pipeline.stages[0].actions[0].configuration.PollForSourceChanges = \"$pollForSourceChanges\"
-  "
+  filter="$rm_meta | $version += 1 | $config_branch = \"$branch\" | $config_PollForSourceChanges = \"$pollForSourceChanges\""
 
   if [ -n "$configuration" ]; then
     build_config_json="{\"name\":\"BUILD_CONFIGURATION\",\"value\":\"$configuration\",\"type\":\"PLAINTEXT\"}"
@@ -85,10 +79,10 @@ else
   fi
 
   if [ -n "$owner" ]; then
-    filter="$filter | .pipeline.stages[0].actions[0].configuration.Owner = \"$owner\""
+    filter="$filter | $config_owner = \"$owner\""
   fi
 fi
 
-jq "$filter" "$source_file" >tmp.$$.json && mv tmp.$$.json "$output_file"
+jq "$filter" "$source_file" > tmp.$$.json && mv tmp.$$.json "$output_file"
 
 echo "Modified JSON saved as $output_file"
